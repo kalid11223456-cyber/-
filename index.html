@@ -1,1 +1,96 @@
 
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ماسح خالد</title>
+<style>
+body{font-family:Arial,sans-serif;background:#101827;color:#fff;margin:0;padding:18px}
+main{max-width:650px;margin:auto}
+h1{color:#55d6a7;text-align:center}
+p{color:#cbd5e1;line-height:1.8}
+.panel{background:#1e293b;padding:16px;border-radius:12px;margin:14px 0}
+label{display:block;margin:12px 0 6px}
+input,button{box-sizing:border-box;width:100%;padding:12px;border-radius:8px;border:1px solid #475569;font-size:16px}
+input{background:#0f172a;color:white}
+button{background:#10b981;color:#06281d;font-weight:bold;margin-top:12px;border:0}
+.small{font-size:13px;color:#94a3b8}
+table{width:100%;border-collapse:collapse;margin-top:12px}
+td,th{padding:9px 5px;border-bottom:1px solid #475569;text-align:center;font-size:13px}
+</style>
+</head>
+<body>
+<main>
+<h1>ماسح خالد</h1>
+<p style="text-align:center">ماسح الأسهم الأمريكية منخفضة السعر</p>
+
+<div class="panel">
+<h3>شروط الفحص</h3>
+<p>السعر أقل من 3 دولارات</p>
+<p>القيمة السوقية أقل من 50 مليون دولار</p>
+<p>الأسهم الحرة أقل من مليوني سهم</p>
+<p>كسر قمة هابطة على RSI وإعادة اختبارها، دون دايفرجنس</p>
+</div>
+
+<div class="panel">
+<h3>تحميل بيانات الأسهم</h3>
+<p>اختر ملف CSV يحتوي بيانات الأسهم. يجب أن يتضمن الأعمدة:
+symbol, price, market_cap, float, rsi_break_retest</p>
+<label for="csv">ملف بيانات الأسهم</label>
+<input id="csv" type="file" accept=".csv,text/csv">
+<button onclick="scan()">فحص الأسهم</button>
+<p id="status" class="small">بانتظار تحميل ملف البيانات.</p>
+<div id="results"></div>
+</div>
+
+<p class="small">تنبيه: هذه النسخة لا تجلب بيانات السوق تلقائياً. يلزم توفير مصدر بيانات موثوق قبل الاعتماد على نتائج الفحص.</p>
+</main>
+<script>
+function scan(){
+const file=document.getElementById('csv').files[0];
+const status=document.getElementById('status');
+const results=document.getElementById('results');
+results.innerHTML='';
+if(!file){status.textContent='اختر ملف CSV أولاً.';return;}
+const reader=new FileReader();
+reader.onload=function(){
+const lines=reader.result.trim().split(/\r?\n/);
+if(lines.length<2){status.textContent='الملف لا يحتوي على بيانات كافية.';return;}
+const headers=lines[0].split(',').map(x=>x.trim().toLowerCase());
+const idx=n=>headers.indexOf(n);
+const required=['symbol','price','market_cap','float','rsi_break_retest'];
+if(required.some(n=>idx(n)<0)){
+status.textContent='تأكد من وجود الأعمدة المطلوبة كما هي مكتوبة أعلاه.';
+return;
+}
+const rows=lines.slice(1).map(line=>line.split(',').map(x=>x.trim()));
+const matches=rows.filter(r=>{
+const price=Number(r[idx('price')]);
+const cap=Number(r[idx('market_cap')]);
+const fl=Number(r[idx('float')]);
+const confirm=r[idx('rsi_break_retest')].toLowerCase();
+return Number.isFinite(price)&&Number.isFinite(cap)&&Number.isFinite(fl)&&
+price>0&&price<3&&cap>0&&cap<50000000&&fl>0&&fl<2000000&&
+['yes','true','1','نعم'].includes(confirm);
+});
+if(!matches.length){
+status.textContent='لا توجد نتائج مطابقة في الملف الذي اخترته.';
+return;
+}
+status.textContent='عدد النتائج المطابقة: '+matches.length;
+let html='<table><thead><tr><th>الرمز</th><th>السعر</th><th>القيمة السوقية</th><th>الأسهم الحرة</th></tr></thead><tbody>';
+matches.forEach(r=>{
+html+='<tr><td>'+escapeHTML(r[idx('symbol')])+'</td><td>$'+Number(r[idx('price')]).toFixed(2)+'</td><td>'+Number(r[idx('market_cap')]).toLocaleString('en-US')+'</td><td>'+Number(r[idx('float')]).toLocaleString('en-US')+'</td></tr>';
+});
+results.innerHTML=html+'</tbody></table>';
+};
+reader.readAsText(file);
+}
+function escapeHTML(s){
+return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+</script>
+</body>
+</html>
+
