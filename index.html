@@ -6,91 +6,215 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ماسح خالد</title>
 <style>
-body{font-family:Arial,sans-serif;background:#101827;color:#fff;margin:0;padding:18px}
-main{max-width:650px;margin:auto}
-h1{color:#55d6a7;text-align:center}
-p{color:#cbd5e1;line-height:1.8}
-.panel{background:#1e293b;padding:16px;border-radius:12px;margin:14px 0}
-label{display:block;margin:12px 0 6px}
-input,button{box-sizing:border-box;width:100%;padding:12px;border-radius:8px;border:1px solid #475569;font-size:16px}
-input{background:#0f172a;color:white}
-button{background:#10b981;color:#06281d;font-weight:bold;margin-top:12px;border:0}
-.small{font-size:13px;color:#94a3b8}
-table{width:100%;border-collapse:collapse;margin-top:12px}
-td,th{padding:9px 5px;border-bottom:1px solid #475569;text-align:center;font-size:13px}
+*{box-sizing:border-box}
+body{margin:0;background:#0b1120;color:#e5e7eb;font-family:Arial,sans-serif;padding:16px}
+main{max-width:950px;margin:auto}
+header{padding:20px 0;border-bottom:1px solid #293449;margin-bottom:18px}
+h1{color:#38bdf8;margin:0 0 8px}
+p{color:#aab7ca;line-height:1.7}
+.panel{background:#151e30;border:1px solid #293449;border-radius:14px;padding:16px;margin:14px 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+label{font-size:13px;color:#b8c6da}
+input,button{width:100%;padding:12px;margin-top:7px;border-radius:8px;border:1px solid #3a4962;background:#0b1120;color:white}
+button{background:#0284c7;border:0;font-weight:bold;cursor:pointer}
+button.secondary{background:#334155}
+.note{font-size:13px;color:#94a3b8}
+.status{padding:12px;border-radius:8px;background:#0b1120;margin-top:12px;line-height:1.7}
+table{width:100%;border-collapse:collapse;min-width:650px}
+th,td{padding:11px;border-bottom:1px solid #293449;text-align:center;font-size:13px}
+th{color:#7dd3fc}
+.tablewrap{overflow-x:auto}
+.good{color:#4ade80}
+.bad{color:#fbbf24}
+@media(max-width:500px){.grid{grid-template-columns:1fr}body{padding:10px}}
 </style>
 </head>
 <body>
 <main>
+<header>
 <h1>ماسح خالد</h1>
-<p style="text-align:center">ماسح الأسهم الأمريكية منخفضة السعر</p>
+<p>ماسح الأسهم الأمريكية — قيعان RSI الصاعدة وكسر القمة الهابطة</p>
+</header>
 
-<div class="panel">
+<section class="panel">
 <h3>شروط الفحص</h3>
-<p>السعر أقل من 3 دولارات</p>
-<p>القيمة السوقية أقل من 50 مليون دولار</p>
-<p>الأسهم الحرة أقل من مليوني سهم</p>
-<p>كسر قمة هابطة على RSI وإعادة اختبارها، دون دايفرجنس</p>
+<div class="grid">
+<div><label>أعلى سعر للسهم ($)</label><input id="maxPrice" type="number" value="5" step="0.01"></div>
+<div><label>أقصى قيمة سوقية ($)</label><input id="maxCap" type="number" value="50000000"></div>
+<div><label>أقصى عدد للأسهم الحرة</label><input id="maxFloat" type="number" value="3000000"></div>
+<div><label>فترة RSI</label><input id="rsiPeriod" type="number" value="14" min="2" max="50"></div>
 </div>
+<p class="note">الإطار المطلوب: ساعة واحدة. يشترط قاع RSI أعلى من القاع السابق، ثم كسر خط القمم الهابطة وإغلاق الشمعة فوقه.</p>
+</section>
 
-<div class="panel">
-<h3>تحميل بيانات الأسهم</h3>
-<p>اختر ملف CSV يحتوي بيانات الأسهم. يجب أن يتضمن الأعمدة:
-symbol, price, market_cap, float, rsi_break_retest</p>
-<label for="csv">ملف بيانات الأسهم</label>
-<input id="csv" type="file" accept=".csv,text/csv">
-<button onclick="scan()">فحص الأسهم</button>
-<p id="status" class="small">بانتظار تحميل ملف البيانات.</p>
-<div id="results"></div>
+<section class="panel">
+<h3>بيانات الأسهم</h3>
+<p>ارفع ملف CSV يحتوي على شموع الساعة لكل سهم، مع السعر والقيمة السوقية والأسهم الحرة.</p>
+<input id="csvFile" type="file" accept=".csv,text/csv">
+<button id="scanButton">افحص الأسهم</button>
+<button id="sampleButton" class="secondary">عرض صيغة ملف البيانات</button>
+<div id="status" class="status">لم يتم تحميل بيانات بعد. هذا الإصدار لا يتصل بمصدر بيانات مباشر.</div>
+</section>
+
+<section class="panel">
+<h3>نتائج الماسح</h3>
+<div class="tablewrap">
+<table>
+<thead><tr>
+<th>السهم</th><th>السعر</th><th>القيمة السوقية</th>
+<th>الأسهم الحرة</th><th>RSI الحالي</th><th>الإشارة</th>
+</tr></thead>
+<tbody id="results"><tr><td colspan="6">لا توجد نتائج حتى الآن</td></tr></tbody>
+</table>
 </div>
-
-<p class="small">تنبيه: هذه النسخة لا تجلب بيانات السوق تلقائياً. يلزم توفير مصدر بيانات موثوق قبل الاعتماد على نتائج الفحص.</p>
+</section>
 </main>
+
 <script>
-function scan(){
-const file=document.getElementById('csv').files[0];
-const status=document.getElementById('status');
-const results=document.getElementById('results');
-results.innerHTML='';
-if(!file){status.textContent='اختر ملف CSV أولاً.';return;}
-const reader=new FileReader();
-reader.onload=function(){
-const lines=reader.result.trim().split(/\r?\n/);
-if(lines.length<2){status.textContent='الملف لا يحتوي على بيانات كافية.';return;}
-const headers=lines[0].split(',').map(x=>x.trim().toLowerCase());
-const idx=n=>headers.indexOf(n);
-const required=['symbol','price','market_cap','float','rsi_break_retest'];
-if(required.some(n=>idx(n)<0)){
-status.textContent='تأكد من وجود الأعمدة المطلوبة كما هي مكتوبة أعلاه.';
-return;
-}
-const rows=lines.slice(1).map(line=>line.split(',').map(x=>x.trim()));
-const matches=rows.filter(r=>{
-const price=Number(r[idx('price')]);
-const cap=Number(r[idx('market_cap')]);
-const fl=Number(r[idx('float')]);
-const confirm=r[idx('rsi_break_retest')].toLowerCase();
-return Number.isFinite(price)&&Number.isFinite(cap)&&Number.isFinite(fl)&&
-price>0&&price<3&&cap>0&&cap<50000000&&fl>0&&fl<2000000&&
-['yes','true','1','نعم'].includes(confirm);
+const $ = id => document.getElementById(id);
+let csvText = "";
+
+$("csvFile").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  csvText = await file.text();
+  $("status").textContent = "تم تحميل الملف. اضغط افحص الأسهم.";
 });
-if(!matches.length){
-status.textContent='لا توجد نتائج مطابقة في الملف الذي اخترته.';
-return;
-}
-status.textContent='عدد النتائج المطابقة: '+matches.length;
-let html='<table><thead><tr><th>الرمز</th><th>السعر</th><th>القيمة السوقية</th><th>الأسهم الحرة</th></tr></thead><tbody>';
-matches.forEach(r=>{
-html+='<tr><td>'+escapeHTML(r[idx('symbol')])+'</td><td>$'+Number(r[idx('price')]).toFixed(2)+'</td><td>'+Number(r[idx('market_cap')]).toLocaleString('en-US')+'</td><td>'+Number(r[idx('float')]).toLocaleString('en-US')+'</td></tr>';
+
+$("sampleButton").addEventListener("click", () => {
+  $("status").textContent =
+    "أسماء الأعمدة المطلوبة: symbol,timestamp,open,high,low,close,volume,market_cap,float_shares. " +
+    "كل صف يمثل شمعة ساعة واحدة. كرر بيانات القيمة السوقية والأسهم الحرة في صفوف السهم نفسه. " +
+    "يجب أن يحتوي كل سهم على 40 شمعة ساعة على الأقل، مرتبة زمنيًا أو قابلة للترتيب حسب timestamp.";
 });
-results.innerHTML=html+'</tbody></table>';
-};
-reader.readAsText(file);
+
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) throw Error("ملف CSV فارغ أو غير مكتمل.");
+  const headers = lines[0].split(",").map(s => s.trim().toLowerCase());
+  const required = ["symbol","timestamp","high","low","close","market_cap","float_shares"];
+  for (const h of required) {
+    if (!headers.includes(h)) throw Error("العمود المطلوب غير موجود: " + h);
+  }
+  const idx = Object.fromEntries(headers.map((h,i)=>[h,i]));
+  const rows = [];
+  for (const line of lines.slice(1)) {
+    if (!line.trim()) continue;
+    const cells = line.split(",").map(s=>s.trim().replace(/^"|"$/g,""));
+    const row = {};
+    for (const h of required) row[h] = cells[idx[h]];
+    row.symbol = String(row.symbol).toUpperCase();
+    for (const k of ["high","low","close","market_cap","float_shares"])
+      row[k] = Number(row[k]);
+    row.time = Date.parse(row.timestamp);
+    if (row.symbol && Number.isFinite(row.close) &&
+        Number.isFinite(row.time)) rows.push(row);
+  }
+  return rows;
 }
-function escapeHTML(s){
-return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function calcRSI(closes, period) {
+  const out = Array(closes.length).fill(null);
+  if (closes.length <= period) return out;
+  let gain = 0, loss = 0;
+  for (let i=1; i<=period; i++) {
+    const d = closes[i]-closes[i-1];
+    gain += Math.max(d,0);
+    loss += Math.max(-d,0);
+  }
+  let avgG = gain/period, avgL = loss/period;
+  out[period] = avgL === 0 ? 100 : 100-100/(1+avgG/avgL);
+  for (let i=period+1; i<closes.length; i++) {
+    const d = closes[i]-closes[i-1];
+    avgG = (avgG*(period-1)+Math.max(d,0))/period;
+    avgL = (avgL*(period-1)+Math.max(-d,0))/period;
+    out[i] = avgL === 0 ? 100 : 100-100/(1+avgG/avgL);
+  }
+  return out;
 }
+
+function pivots(values, left=2, right=2, isLow=true) {
+  const result = [];
+  for (let i=left; i<values.length-right; i++) {
+    if (values[i] == null) continue;
+    let ok = true;
+    for (let j=i-left; j<=i+right; j++) {
+      if (j===i || values[j]==null) continue;
+      if (isLow ? values[i]>=values[j] : values[i]<=values[j]) {
+        ok=false; break;
+      }
+    }
+    if (ok) result.push({i, value:values[i]});
+  }
+  return result;
+}
+
+function scanOne(rows, period, maxPrice, maxCap, maxFloat) {
+  rows.sort((a,b)=>a.time-b.time);
+  const last = rows[rows.length-1];
+  if (!last || last.close > maxPrice ||
+      last.market_cap >= maxCap || last.float_shares > maxFloat) return null;
+
+  const closes = rows.map(r=>r.close);
+  const rsi = calcRSI(closes, period);
+  const lows = pivots(rsi,2,2,true);
+  const highs = pivots(rsi,2,2,false);
+  if (lows.length < 2 || highs.length < 2 || rsi.at(-1)==null) return null;
+
+  const [low1,low2] = lows.slice(-2);
+  if (low2.value <= low1.value) return null;
+
+  const [high1,high2] = highs.slice(-2);
+  if (high2.value >= high1.value || high2.i <= high1.i) return null;
+
+  const end = rsi.length-1;
+  if (end <= high2.i) return null;
+
+  const projected = high1.value +
+    (high2.value-high1.value)*(end-high1.i)/(high2.i-high1.i);
+
+  // يشترط أن تكون أحدث شمعة مغلقة فوق خط القمم الهابطة.
+  // يفترض أن الملف يحتوي على شموع مغلقة فقط.
+  if (rsi[end] <= projected) return null;
+
+  return {symbol:last.symbol, price:last.close, cap:last.market_cap,
+    float:last.float_shares, rsi:rsi[end]};
+}
+
+$("scanButton").addEventListener("click", () => {
+  try {
+    if (!csvText) throw Error("حمّل ملف CSV أولًا.");
+    const rows = parseCSV(csvText);
+    const groups = {};
+    for (const row of rows) (groups[row.symbol] ||= []).push(row);
+
+    const maxPrice = Number($("maxPrice").value);
+    const maxCap = Number($("maxCap").value);
+    const maxFloat = Number($("maxFloat").value);
+    const period = Number($("rsiPeriod").value);
+    const found = [];
+
+    for (const group of Object.values(groups)) {
+      if (group.length < period+10) continue;
+      const result = scanOne(group,period,maxPrice,maxCap,maxFloat);
+      if (result) found.push(result);
+    }
+
+    found.sort((a,b)=>b.rsi-a.rsi);
+    $("results").innerHTML = found.length ? found.map(s =>
+      `<tr><td>${s.symbol}</td><td>$${s.price.toFixed(3)}</td>`+
+      `<td>$${Math.round(s.cap).toLocaleString("en-US")}</td>`+
+      `<td>${Math.round(s.float).toLocaleString("en-US")}</td>`+
+      `<td>${s.rsi.toFixed(2)}</td><td class="good">كسر RSI</td></tr>`
+    ).join("") : '<tr><td colspan="6">لا توجد أسهم مطابقة في البيانات المحملة</td></tr>';
+
+    $("status").textContent =
+      `تم فحص ${Object.keys(groups).length} سهمًا. النتائج المطابقة: ${found.length}. `+
+      "الفحص يعتمد على البيانات الموجودة في ملفك فقط.";
+  } catch (err) {
+    $("status").textContent = "تعذر الفحص: " + err.message;
+  }
+});
 </script>
 </body>
 </html>
-
